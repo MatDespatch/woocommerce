@@ -1,88 +1,43 @@
 <?php
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
-add_action('admin_post_matdespatch_call', 'CustomFormSubmited');
-register_activation_hook('matdespatch/matdespatch.php', 'PluginActivated');
-add_action('wp', 'checkSettingsConfigured');
+register_activation_hook('delyva/delyva.php', 'delyvaPluginActivated');
+register_uninstall_hook('delyva/delyva.php', 'delyvaPluginUninstalled');
+add_filter('parse_request', 'delyvaRequest');
 
-function PluginActivated()
-{
-    global $wpdb;
+function delyvaPluginActivated() {
 
-    $TableName = $wpdb->prefix.'matdespatch';
-    $Charset = $wpdb->get_charset_collate();
-
-    $sql = "CREATE TABLE IF NOT EXISTS `$TableName` (
-	  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-	  `ApiKey` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-	  `UserID` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-	  `FullName` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-	  `BusinessName` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-	  `PhoneNo` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-	  `EmailID` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-	  `DispatchAddress` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-	  `PostalCode` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-	  `City` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-	  `Country` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-	  `PickupDay` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-	  `PickupTime` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-	  PRIMARY KEY (`id`)
-	) $Charset ";
-    require_once ABSPATH.'wp-admin/includes/upgrade.php';
-    dbDelta($sql);
-    $result = $wpdb->get_results("SELECT * FROM $TableName WHERE id = 1");
-
-    if (count($result) == 0) {
-        $wpdb->insert(
-            $TableName,
-            array(
-            'ApiKey' => '',
-        )
-        );
-    }
-
-    $TableName = $wpdb->prefix.'posts';
-    $row = $wpdb->get_results("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '$TableName' AND column_name = 'TrackingCode'");
-
-    if (empty($row)) {
-        $wpdb->query("ALTER TABLE `$TableName` ADD `TrackingCode` VARCHAR(255) NULL DEFAULT NULL;");
-    }
 }
 
-function CustomFormSubmited()
-{
-    global $wpdb;
-    $TableName = $wpdb->prefix.'matdespatch';
-    $wpdb->update($TableName,
-                  array(
-        'ApiKey' => $_POST['ApiKey'],
-        'UserID' => $_POST['UserID'],
-        'FullName' => $_POST['FullName'],
-        'BusinessName' => $_POST['BusinessName'],
-        'PhoneNo' => $_POST['PhoneNo'],
-        'EmailID' => $_POST['EmailID'],
-        'DispatchAddress' => $_POST['DispatchAddress'],
-        'PostalCode' => $_POST['PostalCode'],
-        'City' => $_POST['City'],
-        'Country' => $_POST['Country'],
-        'PickupDay' => $_POST['PickupDay'],
-        'PickupTime' => $_POST['PickupTime'],
-    ), array('id' => 1));
-    $url = admin_url('admin.php?page=matdespatch%2Fmain.php');
-    wp_redirect($url);
+Function delyvaPluginUninstalled() {
+    delete_option('delyva_user_id');
+    delete_option('delyva_api_key');
+    delete_option('delyva_integration_id');
 }
 
-function checkSettingsConfigured() {
-    $settings = get_option( 'woocommerce_matdespatch_settings');
+function delyvaRequest() {
+    if ($_GET['delyva'] == 'plugin_check') {
+        header('Content-Type: application/json');
 
-    if (strlen($settings['UserID']) < 24 || strlen($settings['ApiKey']) < 24) {
-        add_action( 'admin_notices', 'unconfiguredNotice' );
+        die(json_encode([
+            'url' => get_home_url(),
+            'version' => DELYVA_PLUGIN_VERSION,
+        ], JSON_UNESCAPED_SLASHES));
+
+    } else if ($_GET['delyva'] == 'plugin_install') {
+        header('Content-Type: application/json');
+
+        if (!$_POST['integration_id'] || !$_POST['api_key'] || !$_POST['user_id']) {
+            die(json_encode(['error' => 'failed']));
+        }
+
+        update_option('delyva_integration_id', $_POST['integration_id']);
+        update_option('delyva_api_key', $_POST['api_key']);
+        update_option('delyva_user_id', $_POST['user_id']);
+
+        die(json_encode([
+            'integration_id' => $_POST['integration_id'],
+            'api_key' => $_POST['api_key'],
+            'user_id' => $_POST['user_id']
+        ]));
     }
-}
-
-function unconfiguredNotice() {
-    ?>
-    <div class="notice notice-error">
-        <p><?php _e( 'You didn\'t set Matdespatch.com user id and Api key plugin yet! <a href="' . admin_url('admin.php?page=wc-settings&tab=shipping&section=matdespatch') . '">Click here to configure</a>', 'matdespatch' ); ?></p>
-    </div>
-    <?php
 }

@@ -2,40 +2,48 @@
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
 if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_option('active_plugins')))) {
-  add_filter('woocommerce_general_settings', 'matdespatch_general_setting_field');
-  add_action('woocommerce_settings_saved', 'matdespatch_setting_saved');
+  add_filter('woocommerce_general_settings', 'delyva_general_setting_field');
 
-  function matdespatch_general_setting_field($settings) {
+  function delyva_general_setting_field($settings) {
     $settings[] = array(
-      'name' => __( 'Pricing Options', 'matdespatch' ),
+      'name' => __( 'Delyva.com Settings', 'delyva' ),
       'type' => 'title',
-      'desc' => __( 'The following options affect prices based on Matdespatch.com service', 'matdespatch' ),
-      'id' => 'wc_general_settings_matdespatch_pricing_title'
-  );
-
-    $settings[] = array(
-      'title'    	=> __( 'Price check', 'matdespatch' ),
-      'id'       	=> 'wc_general_settings_matdespatch_pricing_enable',
-      'desc'  	=> __( 'Enable or disable price check', 'matdespatch' ),
-      'type'     	=> 'checkbox',
-      'default'	=> 'yes',
-      'desc_tip'	=> true,
+      'id' => 'wc_general_settings_delyva_pricing_title'
     );
 
-    $settings[] = array( 'type' => 'sectionend', 'id' => 'wc_general_settings_matdespatch_pricing_section_end');
+    $settings[] = array(
+      'title'    	=> __( 'User Id', 'delyva' ),
+      'id'       	=> 'delyva_user_id',
+      'type'     	=> 'hidden',
+  //    'custom_attributes' => array('readonly' => 'readonly')
+    );
+
+    $settings[] = array(
+      'title'    	=> __( 'Api Key', 'delyva' ),
+      'id'       	=> 'delyva_api_key',
+      'type'     	=> 'hidden',
+//      'custom_attributes' => array('readonly' => 'readonly')
+    );
+
+    $settings[] = array(
+      'title'           => __( 'Integration Id', 'delyva' ),
+      'id'              => 'delyva_integration_id',
+      'type'            => 'hidden',
+//      'custom_attributes' => array('readonly' => 'readonly')
+    );
+
+    $settings[] = array(
+      'title'    	=> __( 'Price check', 'delyva' ),
+      'id'       	=> 'delyva_pricing_enable',
+      'desc'  	=> __( 'Show shipping method upon checkout', 'delyva' ),
+      'type'     	=> 'checkbox',
+      'default'	=> 'yes',
+      //'desc_tip'	=> true,
+    );
+
+    $settings[] = array( 'type' => 'sectionend', 'id' => 'wc_general_settings_delyva_pricing_section_end');
 
     return $settings;
-  }
-  
-  function matdespatch_setting_saved() {
-    global $woocommerce;
-    if (WC_Admin_Settings::get_option('wc_general_settings_matdespatch_pricing_enable') == 'no') {
-      $woocommerce->shipping->reset_shipping();
-    }
-
-    if (WC_Admin_Settings::get_option('wc_general_settings_matdespatch_pricing_enable') == 'yes') {
-      $woocommerce->shipping->reset_shipping();
-    }
   }
 }
 ?>
